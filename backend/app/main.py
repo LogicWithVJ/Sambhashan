@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.api.auth import router as auth_router
+from app.api.users import router as users_router
 from app.core.config import get_settings
 from app.core.database import Base, create_database_engine
 from app.models.user import User  # noqa: F401 - register model metadata
@@ -27,6 +28,7 @@ def create_app(database_url: str | None = None) -> FastAPI:
         expire_on_commit=False,
     )
     app.include_router(auth_router)
+    app.include_router(users_router)
 
     @app.get("/api/health", tags=["health"])
     def health() -> dict[str, str]:

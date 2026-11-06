@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from "./auth/AuthContext";
 import { LoginPage } from "./pages/LoginPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { UserSearchPage } from "./pages/UserSearchPage";
 
 function LandingPage() {
   return (
@@ -57,6 +58,10 @@ function ProtectedDashboard() {
         </p>
       </section>
       <section className="mt-6 grid gap-4 sm:grid-cols-2">
+        <Link className="rounded-2xl border border-slate-700 bg-slate-800/70 p-6 transition hover:border-cyan-700" to="/search">
+          <h2 className="text-lg font-semibold">Find someone</h2>
+          <p className="mt-2 text-sm text-slate-400">Look up a person using their User ID.</p>
+        </Link>
         <Link className="rounded-2xl border border-slate-700 bg-slate-800/70 p-6 transition hover:border-cyan-700" to="/profile">
           <h2 className="text-lg font-semibold">Profile settings</h2>
           <p className="mt-2 text-sm text-slate-400">Update your name, email, picture, and language.</p>
@@ -83,6 +88,14 @@ function AppRoutes() {
           <ProfileRoute />
         )}
       />
+      <Route
+        path="/search"
+        element={(
+          <ProtectedRoute>
+            <UserSearchPage />
+          </ProtectedRoute>
+        )}
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
@@ -93,6 +106,13 @@ function ProfileRoute() {
   if (loading) return <p className="p-8 text-center text-slate-300">Loading your account…</p>;
   if (!user) return <Navigate to="/login" replace />;
   return <ProfilePage />;
+}
+
+function ProtectedRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <p className="p-8 text-center text-slate-300">Loading your account…</p>;
+  if (!user) return <Navigate to="/login" replace />;
+  return children;
 }
 
 export default function App() {

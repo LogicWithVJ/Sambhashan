@@ -32,13 +32,15 @@ No Stage 2 feature is part of the current implementation.
 | `backend/.env.example` | Example configuration keys; replace development values |
 | `backend/app/main.py` | FastAPI app factory, database lifecycle, health endpoint, route registration |
 | `backend/app/api/auth.py` | Registration, login, logout, session validation, current-user endpoint |
+| `backend/app/api/users.py` | Authenticated User ID search returning public profile fields only |
 | `backend/app/core/config.py` | Environment-backed settings |
 | `backend/app/core/database.py` | SQLAlchemy base, engine creation, request-scoped sessions |
 | `backend/app/models/user.py` | User account persistence model |
-| `backend/app/schemas/auth.py` | Authentication and profile request/response validation |
+| `backend/app/schemas/auth.py` | Authentication and private profile request/response validation |
+| `backend/app/schemas/users.py` | Public profile response without email or mobile number |
 | `backend/app/services/auth.py` | Mobile normalization and password hashing/verification |
 | `backend/app/{api,core,models,schemas,services}/__init__.py` | Marks backend directories as Python packages |
-| `backend/tests/test_auth.py` | Registration, login, authorization, and profile tests |
+| `backend/tests/test_auth.py` | Registration, login, authorization, profile, and user-search tests |
 | `frontend/package.json` | Frontend scripts and dependency manifest |
 | `frontend/package-lock.json` | Reproducible npm dependency resolution |
 | `frontend/vite.config.js` | Vite React/Tailwind plugins and development API proxy |
@@ -50,6 +52,7 @@ No Stage 2 feature is part of the current implementation.
 | `frontend/src/pages/LoginPage.jsx` | Mobile/User ID sign-in form |
 | `frontend/src/pages/RegisterPage.jsx` | Registration form and generated-ID confirmation |
 | `frontend/src/pages/ProfilePage.jsx` | Authenticated profile view and edit form |
+| `frontend/src/pages/UserSearchPage.jsx` | Authenticated User ID search and public profile result |
 | `frontend/src/styles.css` | Tailwind import and shared responsive/auth styles |
 
 ## Authentication flow

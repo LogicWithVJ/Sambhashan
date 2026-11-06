@@ -77,6 +77,6 @@ pytest
 
 Only the authentication foundation is implemented. Profile editing, user search,
 presence, call history, Socket.IO signaling, and WebRTC are not yet implemented.
-Profile viewing/editing and the initial dashboard are implemented. The next module
-should add user search; calling should then be developed independently of any future
-translation service.
+Profile viewing/editing, the initial dashboard, and protected User ID search are
+implemented. Search results omit contact details. Voice/video calling should be
+developed independently of any future translation service.

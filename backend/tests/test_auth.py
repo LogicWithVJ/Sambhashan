@@ -119,3 +119,30 @@ def test_profile_rejects_empty_name_and_invalid_picture_url(tmp_path):
         )
         assert empty_name.status_code == 422
         assert invalid_picture.status_code == 422
+
+
+def test_user_search_returns_public_fields_only(tmp_path):
+    with make_client(tmp_path) as client:
+        register(client)
+        other_user_id = register(client, "+1 (415) 555-0132")
+        client.post(
+            "/api/auth/login",
+            json={"identifier": "+12025550198", "password": "a-strong-password"},
+        )
+
+        response = client.get(f"/api/users/{other_user_id.lower()}")
+        assert response.status_code == 200
+        assert response.json()["user_id"] == other_user_id
+        assert response.json()["full_name"] == "Avery Example"
+        assert "mobile_number" not in response.json()
+        assert "email" not in response.json()
+
+        missing = client.get("/api/users/LC0000000000")
+        assert missing.status_code == 404
+        assert missing.json()["detail"] == "No user found with that User ID."
+
+
+def test_user_search_requires_authentication(tmp_path):
+    with make_client(tmp_path) as client:
+        response = client.get("/api/users/LC0000000000")
+        assert response.status_code == 401
