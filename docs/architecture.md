@@ -35,10 +35,10 @@ No Stage 2 feature is part of the current implementation.
 | `backend/app/core/config.py` | Environment-backed settings |
 | `backend/app/core/database.py` | SQLAlchemy base, engine creation, request-scoped sessions |
 | `backend/app/models/user.py` | User account persistence model |
-| `backend/app/schemas/auth.py` | Authentication request/response validation |
+| `backend/app/schemas/auth.py` | Authentication and profile request/response validation |
 | `backend/app/services/auth.py` | Mobile normalization and password hashing/verification |
 | `backend/app/{api,core,models,schemas,services}/__init__.py` | Marks backend directories as Python packages |
-| `backend/tests/test_auth.py` | Registration, duplicate, login, and authorization tests |
+| `backend/tests/test_auth.py` | Registration, login, authorization, and profile tests |
 | `frontend/package.json` | Frontend scripts and dependency manifest |
 | `frontend/package-lock.json` | Reproducible npm dependency resolution |
 | `frontend/vite.config.js` | Vite React/Tailwind plugins and development API proxy |
@@ -49,6 +49,7 @@ No Stage 2 feature is part of the current implementation.
 | `frontend/src/lib/api.js` | Credentialed API requests and error handling |
 | `frontend/src/pages/LoginPage.jsx` | Mobile/User ID sign-in form |
 | `frontend/src/pages/RegisterPage.jsx` | Registration form and generated-ID confirmation |
+| `frontend/src/pages/ProfilePage.jsx` | Authenticated profile view and edit form |
 | `frontend/src/styles.css` | Tailwind import and shared responsive/auth styles |
 
 ## Authentication flow
@@ -62,6 +63,11 @@ The cookie is configured as Secure only when `COOKIE_SECURE=true`; enable that s
 in HTTPS deployments. The development default is not suitable for production.
 Password recovery is deliberately not advertised or exposed until a verified
 recovery channel is configured.
+
+The authenticated profile endpoints (`GET` and `PATCH /api/auth/profile`) expose the
+current account's phone number only to that account. Profile edits support name,
+optional email, picture URL, preferred language, and country/location. Public user
+discovery will use a separate response that omits private contact information.
 
 ## Database
 

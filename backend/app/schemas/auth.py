@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl, field_validator
 
 from app.services.auth import normalize_mobile
 
@@ -46,6 +46,44 @@ class UserResponse(BaseModel):
     full_name: str
     mobile_number: str
     email: str | None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ProfileUpdateRequest(BaseModel):
+    full_name: str | None = Field(default=None, min_length=1, max_length=120)
+    email: EmailStr | None = None
+    profile_picture_url: HttpUrl | None = None
+    preferred_language: str | None = Field(default=None, max_length=64)
+    country: str | None = Field(default=None, max_length=100)
+
+    @field_validator("full_name")
+    @classmethod
+    def validate_full_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        if not value:
+            raise ValueError("Full name cannot be empty.")
+        return value
+
+    @field_validator("preferred_language", "country")
+    @classmethod
+    def normalize_optional_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return value.strip() or None
+
+
+class ProfileResponse(BaseModel):
+    user_id: str
+    full_name: str
+    mobile_number: str
+    email: str | None
+    profile_picture_url: str | None
+    preferred_language: str | None
+    country: str | None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

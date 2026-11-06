@@ -73,3 +73,49 @@ def test_protected_endpoint_requires_authentication(tmp_path):
     with make_client(tmp_path) as client:
         response = client.get("/api/auth/me")
         assert response.status_code == 401
+
+
+def test_profile_can_be_viewed_and_edited_without_exposing_other_users(tmp_path):
+    with make_client(tmp_path) as client:
+        register(client)
+        assert client.post(
+            "/api/auth/login",
+            json={"identifier": "+12025550198", "password": "a-strong-password"},
+        ).status_code == 200
+
+        updated = client.patch(
+            "/api/auth/profile",
+            json={
+                "full_name": "Avery Updated",
+                "email": "avery@example.com",
+                "preferred_language": "Hindi",
+                "country": "India",
+                "profile_picture_url": "https://example.com/avatar.png",
+            },
+        )
+        assert updated.status_code == 200
+        assert updated.json()["full_name"] == "Avery Updated"
+        assert updated.json()["preferred_language"] == "Hindi"
+        assert updated.json()["country"] == "India"
+        assert updated.json()["mobile_number"] == "+12025550198"
+
+        profile = client.get("/api/auth/profile")
+        assert profile.json()["email"] == "avery@example.com"
+        assert profile.json()["profile_picture_url"] == "https://example.com/avatar.png"
+
+
+def test_profile_rejects_empty_name_and_invalid_picture_url(tmp_path):
+    with make_client(tmp_path) as client:
+        register(client)
+        client.post(
+            "/api/auth/login",
+            json={"identifier": "+12025550198", "password": "a-strong-password"},
+        )
+
+        empty_name = client.patch("/api/auth/profile", json={"full_name": "  "})
+        invalid_picture = client.patch(
+            "/api/auth/profile",
+            json={"profile_picture_url": "javascript:alert(1)"},
+        )
+        assert empty_name.status_code == 422
+        assert invalid_picture.status_code == 422

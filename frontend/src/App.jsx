@@ -1,6 +1,7 @@
 import { BrowserRouter, Link, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import { LoginPage } from "./pages/LoginPage";
+import { ProfilePage } from "./pages/ProfilePage";
 import { RegisterPage } from "./pages/RegisterPage";
 
 function LandingPage() {
@@ -41,7 +42,10 @@ function ProtectedDashboard() {
           </p>
           <h1 className="mt-3 text-3xl font-bold">Welcome, {user.full_name}</h1>
         </div>
-        <button className="button-secondary" onClick={logout}>Log out</button>
+        <div className="flex flex-wrap gap-2">
+          <Link className="button-secondary" to="/profile">Your profile</Link>
+          <button className="button-secondary" onClick={logout}>Log out</button>
+        </div>
       </div>
       <section className="mt-10 rounded-2xl border border-slate-700 bg-slate-800/70 p-6">
         <p className="text-sm text-slate-400">Your User ID</p>
@@ -49,9 +53,18 @@ function ProtectedDashboard() {
           {user.user_id}
         </p>
         <p className="mt-4 text-sm text-slate-400">
-          Your account is ready. Profile editing, user search, and calling are planned
-          for later Stage 1 modules.
+          Share your User ID so people can find you. Call features are coming in a later module.
         </p>
+      </section>
+      <section className="mt-6 grid gap-4 sm:grid-cols-2">
+        <Link className="rounded-2xl border border-slate-700 bg-slate-800/70 p-6 transition hover:border-cyan-700" to="/profile">
+          <h2 className="text-lg font-semibold">Profile settings</h2>
+          <p className="mt-2 text-sm text-slate-400">Update your name, email, picture, and language.</p>
+        </Link>
+        <div className="rounded-2xl border border-slate-700 bg-slate-800/40 p-6">
+          <h2 className="text-lg font-semibold">Calls</h2>
+          <p className="mt-2 text-sm text-slate-400">Voice and video calling are not available yet.</p>
+        </div>
       </section>
     </main>
   );
@@ -64,9 +77,22 @@ function AppRoutes() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/dashboard" element={<ProtectedDashboard />} />
+      <Route
+        path="/profile"
+        element={(
+          <ProfileRoute />
+        )}
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
+}
+
+function ProfileRoute() {
+  const { user, loading } = useAuth();
+  if (loading) return <p className="p-8 text-center text-slate-300">Loading your account…</p>;
+  if (!user) return <Navigate to="/login" replace />;
+  return <ProfilePage />;
 }
 
 export default function App() {

@@ -14,6 +14,9 @@ class User(Base):
     full_name: Mapped[str] = mapped_column(String(120))
     mobile_number: Mapped[str] = mapped_column(String(20), unique=True, index=True)
     email: Mapped[str | None] = mapped_column(String(254), nullable=True)
+    profile_picture_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+    preferred_language: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    country: Mapped[str | None] = mapped_column(String(100), nullable=True)
     password_hash: Mapped[str] = mapped_column(String(512))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

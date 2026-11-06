@@ -11,7 +11,14 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.models.user import User
-from app.schemas.auth import LoginRequest, RegistrationRequest, RegistrationResponse, UserResponse
+from app.schemas.auth import (
+    LoginRequest,
+    ProfileResponse,
+    ProfileUpdateRequest,
+    RegistrationRequest,
+    RegistrationResponse,
+    UserResponse,
+)
 from app.services.auth import hash_password, normalize_mobile, verify_password
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
@@ -152,4 +159,25 @@ def logout(response: Response) -> Response:
 
 @router.get("/me", response_model=UserResponse)
 def read_current_user(user: User = Depends(get_current_user)) -> User:
+    return user
+
+
+@router.get("/profile", response_model=ProfileResponse)
+def read_profile(user: User = Depends(get_current_user)) -> User:
+    return user
+
+
+@router.patch("/profile", response_model=ProfileResponse)
+def update_profile(
+    payload: ProfileUpdateRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> User:
+    updates = payload.model_dump(exclude_unset=True)
+    if "profile_picture_url" in updates and updates["profile_picture_url"] is not None:
+        updates["profile_picture_url"] = str(updates["profile_picture_url"])
+    for field, value in updates.items():
+        setattr(user, field, value)
+    db.commit()
+    db.refresh(user)
     return user
