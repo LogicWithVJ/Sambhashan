@@ -1,7 +1,7 @@
-# Sambhashan
+# Sambhashan (LinguaConnect)
 
-LinguaConnect is a multilingual voice and video communication platform. Development is
-currently limited to Stage 1; AI translation is intentionally out of scope.
+A multilingual voice and video communication platform. Work is currently limited to
+Stage 1; AI translation is intentionally out of scope.
 
 ## Architecture
 
@@ -9,11 +9,13 @@ currently limited to Stage 1; AI translation is intentionally out of scope.
 frontend/                 React + Vite + Tailwind client
   src/
     auth/                 Authentication context and route protection
-    pages/                Landing, registration, login, and dashboard screens
+    calls/                Socket.IO call state and WebRTC call screen
+    pages/                Landing, account, profile, search, and history screens
     lib/                  Backend API client
 backend/                  FastAPI application
   app/
-    api/                  HTTP route handlers
+    api/                  Authenticated HTTP route handlers
+    realtime.py           Authenticated Socket.IO signaling and presence
     core/                 Configuration and database setup
     models/               SQLAlchemy database models
     schemas/              Request and response validation
@@ -22,18 +24,28 @@ backend/                  FastAPI application
 docs/                     Architecture and integration notes
 ```
 
-The backend owns authentication and user data. The frontend calls it through `/api`;
-Vite proxies that prefix to FastAPI during local development. Future signaling and
-WebRTC modules will be separate from authentication and will not depend on AI services.
-The database URL is configurable for PostgreSQL, with SQLite as a convenient local
-development default.
+The backend owns authentication, user data, call history, and Socket.IO signaling.
+The frontend calls HTTP endpoints through `/api` and connects to `/socket.io`; Vite
+proxies both to FastAPI during local development. WebRTC media is peer-to-peer and
+does not depend on AI services. The database URL is configurable for PostgreSQL, with
+SQLite as a convenient local development default.
 
-## Stage 1, module 1: authentication
+## Stage 1 features currently implemented
 
-This module provides mobile-number registration, generated User IDs, mobile/User ID
-login, Argon2 password hashing, an HttpOnly signed session cookie, logout, and a
-protected `/api/auth/me` endpoint. Email is optional. Recovery is not enabled because
-there is no verified recovery method.
+- Mobile-number registration, generated User IDs, mobile/User ID login, Argon2
+  password hashing, signed HttpOnly session cookie, and logout.
+- Private profile viewing/editing and authenticated search by User ID; search results
+  omit mobile numbers and email addresses.
+- Authenticated Socket.IO call invitations, accept/reject, presence, WebRTC signaling,
+  voice/video media, mute/camera controls, call duration, disconnect handling, and
+  recent call history.
+- Calls are not recorded. Password recovery is not available until a verified
+  recovery method is configured.
+
+The Socket.IO signaling state is in-process; run one Uvicorn worker for this version.
+Use HTTPS in deployment (required for browser media access outside localhost). The
+included public STUN servers may not connect through restrictive networks; reliable
+deployment requires a TURN server.
 
 ### Run the backend (PowerShell)
 
@@ -62,6 +74,8 @@ npm run dev
 
 Open the Vite URL (normally `http://localhost:5173`). Register with a mobile number
 and password, note the generated User ID, and try signing in with either identifier.
+Allow microphone/camera access to place a call. Test calling with two signed-in
+browsers or devices.
 
 ### Run backend tests
 
@@ -73,10 +87,10 @@ pip install -r requirements.txt
 pytest
 ```
 
-## Current scope and next modules
+## Current limitations
 
-Only the authentication foundation is implemented. Profile editing, user search,
-presence, call history, Socket.IO signaling, and WebRTC are not yet implemented.
-Profile viewing/editing, the initial dashboard, and protected User ID search are
-implemented. Search results omit contact details. Voice/video calling should be
-developed independently of any future translation service.
+There is no TURN server configuration, schema migration framework, password-change or
+recovery flow, notification preference management, or production deployment setup.
+Voice/video behavior still needs browser/device testing across real networks; the
+automated tests cover API privacy and a two-client Socket.IO signaling exchange, not
+camera/microphone hardware or end-to-end media quality.

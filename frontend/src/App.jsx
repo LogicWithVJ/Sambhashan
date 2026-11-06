@@ -1,5 +1,8 @@
 import { BrowserRouter, Link, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
+import { CallProvider, IncomingCallDialog, useCalls } from "./calls/CallContext";
+import { CallPage } from "./calls/CallPage";
+import { CallHistoryPage } from "./pages/CallHistoryPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { RegisterPage } from "./pages/RegisterPage";
@@ -28,6 +31,7 @@ function LandingPage() {
 
 function ProtectedDashboard() {
   const { user, loading, logout } = useAuth();
+  const { callNotice, connected } = useCalls();
 
   if (loading) {
     return <p className="p-8 text-center text-slate-300">Loading your account…</p>;
@@ -54,9 +58,10 @@ function ProtectedDashboard() {
           {user.user_id}
         </p>
         <p className="mt-4 text-sm text-slate-400">
-          Share your User ID so people can find you. Call features are coming in a later module.
+          Share your User ID so people can find you and connect with a voice or video call.
         </p>
       </section>
+      {callNotice && <p className="mt-4 text-sm text-cyan-200" role="status">{callNotice}</p>}
       <section className="mt-6 grid gap-4 sm:grid-cols-2">
         <Link className="rounded-2xl border border-slate-700 bg-slate-800/70 p-6 transition hover:border-cyan-700" to="/search">
           <h2 className="text-lg font-semibold">Find someone</h2>
@@ -67,8 +72,16 @@ function ProtectedDashboard() {
           <p className="mt-2 text-sm text-slate-400">Update your name, email, picture, and language.</p>
         </Link>
         <div className="rounded-2xl border border-slate-700 bg-slate-800/40 p-6">
-          <h2 className="text-lg font-semibold">Calls</h2>
-          <p className="mt-2 text-sm text-slate-400">Voice and video calling are not available yet.</p>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold">Calling</h2>
+            <span className={`text-xs ${connected ? "text-emerald-300" : "text-slate-400"}`}>
+              {connected ? "Signaling online" : "Connecting…"}
+            </span>
+          </div>
+          <p className="mt-2 text-sm text-slate-400">Start voice or video calls from a person’s search result.</p>
+          <Link className="mt-4 inline-block text-sm font-semibold text-cyan-300 hover:underline" to="/calls/history">
+            View call history →
+          </Link>
         </div>
       </section>
     </main>
@@ -82,6 +95,22 @@ function AppRoutes() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/dashboard" element={<ProtectedDashboard />} />
+      <Route
+        path="/calls/history"
+        element={(
+          <ProtectedRoute>
+            <CallHistoryPage />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path="/calls/:callId"
+        element={(
+          <ProtectedRoute>
+            <CallPage />
+          </ProtectedRoute>
+        )}
+      />
       <Route
         path="/profile"
         element={(
@@ -119,7 +148,10 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
+        <CallProvider>
+          <AppRoutes />
+          <IncomingCallDialog />
+        </CallProvider>
       </AuthProvider>
     </BrowserRouter>
   );

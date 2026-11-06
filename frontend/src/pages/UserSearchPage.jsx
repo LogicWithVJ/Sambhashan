@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
+import { useCalls } from "../calls/CallContext";
 import { apiRequest } from "../lib/api";
 
 export function UserSearchPage() {
@@ -7,6 +9,9 @@ export function UserSearchPage() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [searching, setSearching] = useState(false);
+  const [callError, setCallError] = useState("");
+  const { startCall, presence, connected } = useCalls();
+  const { user } = useAuth();
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -19,6 +24,15 @@ export function UserSearchPage() {
       setError(requestError.message);
     } finally {
       setSearching(false);
+    }
+  }
+
+  async function beginCall(callType) {
+    setCallError("");
+    try {
+      await startCall(result.user_id, callType);
+    } catch (requestError) {
+      setCallError(requestError.message);
     }
   }
 
@@ -69,6 +83,11 @@ export function UserSearchPage() {
               <p className="mt-1 font-mono text-cyan-200">{result.user_id}</p>
             </div>
           </div>
+          <p className={`mt-4 text-sm ${presence[result.user_id] ? "text-emerald-300" : "text-slate-400"}`} role="status">
+            {presence[result.user_id] === undefined
+              ? "Status unavailable"
+              : presence[result.user_id] ? "Online" : "Offline"}
+          </p>
           <dl className="mt-6 grid gap-4 border-t border-slate-700 pt-5 sm:grid-cols-2">
             {result.preferred_language && (
               <div>
@@ -84,8 +103,19 @@ export function UserSearchPage() {
             )}
           </dl>
           <p className="mt-6 text-sm text-slate-400">
-            Voice and video call actions will be available in the calling module.
+            Calls are peer-to-peer. Your microphone or camera is requested only after you start or accept a call.
           </p>
+          {result.user_id !== user?.user_id && (
+            <div className="mt-5 flex flex-wrap gap-3">
+              <button className="button-primary" disabled={!connected || !presence[result.user_id]} onClick={() => beginCall("voice")} type="button">
+                Start voice call
+              </button>
+              <button className="button-secondary" disabled={!connected || !presence[result.user_id]} onClick={() => beginCall("video")} type="button">
+                Start video call
+              </button>
+            </div>
+          )}
+          {callError && <p className="mt-4 text-sm text-rose-300" role="alert">{callError}</p>}
         </section>
       )}
     </main>

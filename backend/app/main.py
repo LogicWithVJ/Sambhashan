@@ -3,10 +3,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.api.auth import router as auth_router
+from app.api.calls import router as calls_router
 from app.api.users import router as users_router
 from app.core.config import get_settings
 from app.core.database import Base, create_database_engine
 from app.models.user import User  # noqa: F401 - register model metadata
+from app.models.call import CallRecord  # noqa: F401 - register model metadata
+from app.realtime import create_socket_app
 
 
 def create_app(database_url: str | None = None) -> FastAPI:
@@ -19,7 +22,7 @@ def create_app(database_url: str | None = None) -> FastAPI:
         yield
         engine.dispose()
 
-    app = FastAPI(title="LinguaConnect API", lifespan=lifespan)
+    app = FastAPI(title="Sambhashan API", lifespan=lifespan)
     from sqlalchemy.orm import sessionmaker
 
     app.state.session_factory = sessionmaker(
@@ -29,6 +32,7 @@ def create_app(database_url: str | None = None) -> FastAPI:
     )
     app.include_router(auth_router)
     app.include_router(users_router)
+    app.include_router(calls_router)
 
     @app.get("/api/health", tags=["health"])
     def health() -> dict[str, str]:
@@ -37,4 +41,5 @@ def create_app(database_url: str | None = None) -> FastAPI:
     return app
 
 
-app = create_app()
+api_app = create_app()
+app = create_socket_app(api_app)
