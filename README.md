@@ -1,4 +1,4 @@
-# LinguaConnect
+# Sambhashan
 
 LinguaConnect is a multilingual voice and video communication platform. Development is
 currently limited to Stage 1; AI translation is intentionally out of scope.
