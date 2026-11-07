@@ -21,6 +21,7 @@ function emitWithAck(socket, event, payload) {
 export function CallProvider({ children }) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const navigateRef = useRef(navigate);
   const socketRef = useRef(null);
   const activeCallRef = useRef(null);
   const [connected, setConnected] = useState(false);
@@ -28,6 +29,10 @@ export function CallProvider({ children }) {
   const [currentCall, setCurrentCall] = useState(null);
   const [presence, setPresence] = useState({});
   const [callNotice, setCallNotice] = useState("");
+
+  useEffect(() => {
+    navigateRef.current = navigate;
+  }, [navigate]);
 
   useEffect(() => {
     if (!user?.user_id) {
@@ -68,7 +73,7 @@ export function CallProvider({ children }) {
       activeCallRef.current = null;
       setCurrentCall(null);
       setCallNotice("Your call was declined.");
-      navigate("/dashboard");
+      navigateRef.current("/dashboard");
     });
     socket.on("call:ended", (event) => {
       setIncomingCall((current) => current?.call_id === event.call_id ? null : current);
@@ -78,7 +83,7 @@ export function CallProvider({ children }) {
         setCallNotice(
           event.status === "missed" ? "The call was missed." : "The call has ended.",
         );
-        navigate("/dashboard");
+        navigateRef.current("/dashboard");
       }
     });
     socket.on("connect_error", () => {
@@ -91,7 +96,7 @@ export function CallProvider({ children }) {
       if (socketRef.current === socket) socketRef.current = null;
       setConnected(false);
     };
-  }, [user?.user_id, navigate]);
+  }, [user?.user_id]);
 
   async function startCall(targetUserId, callType) {
     const socket = socketRef.current;
