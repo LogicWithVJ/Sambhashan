@@ -13,6 +13,7 @@ from app.core.database import get_db
 from app.models.user import User
 from app.schemas.auth import (
     LoginRequest,
+    MobileSessionResponse,
     ProfileResponse,
     ProfileUpdateRequest,
     RegistrationRequest,
@@ -52,7 +53,17 @@ def get_current_user(
     request: Request,
     db: Session = Depends(get_db),
 ) -> User:
-    token = request.cookies.get(settings.session_cookie_name)
+    authorization = request.headers.get("Authorization", "")
+    if authorization:
+        scheme, _, credentials = authorization.partition(" ")
+        if scheme.lower() != "bearer" or not credentials.strip():
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="A valid bearer token is required.",
+            )
+        token = credentials.strip()
+    else:
+        token = request.cookies.get(settings.session_cookie_name)
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -142,6 +153,33 @@ def login(
 
     _set_session_cookie(response, user.user_id)
     return user
+
+
+@router.post("/mobile-login", response_model=MobileSessionResponse)
+def mobile_login(payload: LoginRequest, db: Session = Depends(get_db)) -> dict:
+    identifier = payload.identifier.strip()
+    if identifier.upper().startswith("LC"):
+        user = db.scalar(select(User).where(User.user_id == identifier.upper()))
+    else:
+        try:
+            mobile_number = normalize_mobile(identifier)
+        except ValueError:
+            user = None
+        else:
+            user = db.scalar(select(User).where(User.mobile_number == mobile_number))
+
+    if user is None or not verify_password(payload.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect mobile number/User ID or password.",
+        )
+
+    user_response = UserResponse.model_validate(user).model_dump()
+    return {
+        **user_response,
+        "access_token": _create_access_token(user.user_id),
+        "token_type": "bearer",
+    }
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)

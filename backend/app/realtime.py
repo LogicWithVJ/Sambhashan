@@ -41,8 +41,13 @@ def _cookie_from_environ(environ: dict[str, Any]) -> str | None:
     return morsel.value if morsel else None
 
 
-def _authenticated_user_id(environ: dict[str, Any]) -> str | None:
-    token = _cookie_from_environ(environ)
+def _authenticated_user_id(
+    environ: dict[str, Any],
+    auth: dict[str, Any] | None = None,
+) -> str | None:
+    token = auth.get("token") if isinstance(auth, dict) else None
+    if not isinstance(token, str) or not token:
+        token = _cookie_from_environ(environ)
     if not token:
         return None
     try:
@@ -119,7 +124,7 @@ async def _notify_participants(
 
 @sio.event
 async def connect(sid: str, environ: dict[str, Any], auth: dict[str, Any] | None = None):
-    user_id = _authenticated_user_id(environ)
+    user_id = _authenticated_user_id(environ, auth)
     if user_id is None:
         return False
     with _session_factory()() as db:

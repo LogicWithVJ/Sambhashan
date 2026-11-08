@@ -14,6 +14,7 @@ No Stage 2 feature is part of the current implementation.
 | Component | Location | Responsibility |
 |---|---|---|
 | Web client | `frontend/` | React UI, navigation, authenticated HTTP calls |
+| Android client | `mobile/` | React Native app, secure bearer-token storage, native WebRTC media |
 | API | `backend/app/api/` | HTTP endpoints and request authorization |
 | Authentication | `backend/app/services/` | Password hashing and signed session tokens |
 | Persistence | `backend/app/models/`, `backend/app/core/database.py` | SQLAlchemy models and database sessions |
@@ -62,6 +63,14 @@ No Stage 2 feature is part of the current implementation.
 | `frontend/src/pages/CallHistoryPage.jsx` | Authenticated call history |
 | `frontend/src/calls/CallContext.jsx` | Socket.IO connection, presence, and invitation state |
 | `frontend/src/calls/CallPage.jsx` | WebRTC peer connection, media controls, and call duration |
+| `mobile/App.tsx` | Android registration/login, authenticated search, incoming calls, WebRTC, history |
+| `mobile/src/api.ts` | Mobile HTTP client with bearer-token authorization |
+| `mobile/src/config.ts` | Android emulator and configurable physical-device API endpoint |
+| `mobile/app.config.js` | Expo development build, WebRTC plugin, and Android media permissions |
+| `mobile/app/_layout.tsx`, `mobile/app/index.tsx` | Expo Router root stack and main application route |
+| `mobile/plugins/withDevelopmentCleartextTraffic.js` | Allows local HTTP only in Android development builds |
+| `mobile/.env.example` | Example API URL for connecting a physical phone to the development backend |
+| `mobile/README.md` | Android install, backend connection, and local test instructions |
 | `frontend/src/styles.css` | Tailwind import and shared responsive/auth styles |
 
 ## Authentication flow
@@ -87,6 +96,13 @@ Offer/answer descriptions and ICE candidates are relayed only between the two ca
 participants. WebRTC media uses DTLS-SRTP peer connections and is not sent through or
 recorded by the API server. Google STUN servers are configured for initial connectivity;
 TURN is not configured.
+
+The mobile app signs in through `POST /api/auth/mobile-login`, which returns a signed
+bearer token. Android stores that token with Expo SecureStore and sends it to HTTP
+endpoints using the `Authorization: Bearer` header; Socket.IO sends it in the
+connection auth payload. Browser authentication remains cookie-based. The native
+client uses `react-native-webrtc`, so it must run in an Expo development build rather
+than Expo Go.
 
 Presence and active-call state currently live in process memory. Run one Uvicorn worker;
 multi-worker or multi-instance deployment requires shared presence/call coordination.

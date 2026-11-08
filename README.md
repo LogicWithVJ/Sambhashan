@@ -12,6 +12,8 @@ frontend/                 React + Vite + Tailwind client
     calls/                Socket.IO call state and WebRTC call screen
     pages/                Landing, account, profile, search, and history screens
     lib/                  Backend API client
+mobile/                   Expo Android client with native WebRTC
+  src/                    API client and API URL configuration
 backend/                  FastAPI application
   app/
     api/                  Authenticated HTTP route handlers
@@ -41,6 +43,9 @@ SQLite as a convenient local development default.
   recent call history.
 - Calls are not recorded. Password recovery is not available until a verified
   recovery method is configured.
+- The `mobile/` folder contains an Android-first React Native app with secure token
+  storage and native WebRTC. It requires an Expo development build; Expo Go is not
+  supported for native calls.
 
 The Socket.IO signaling state is in-process; run one Uvicorn worker for this version.
 Use HTTPS in deployment (required for browser media access outside localhost). The
@@ -76,6 +81,46 @@ Open the Vite URL (normally `http://localhost:5173`). Register with a mobile num
 and password, note the generated User ID, and try signing in with either identifier.
 Allow microphone/camera access to place a call. Test calling with two signed-in
 browsers or devices.
+
+### Run the Android mobile app
+
+See [mobile/README.md](./mobile/README.md) for phone/emulator connection instructions.
+
+Install Android Studio with the Android SDK and platform tools. In Android Studio,
+create/start an emulator, or connect an Android phone with USB debugging enabled.
+Native WebRTC is not available in Expo Go; install a development build:
+
+```powershell
+cd mobile
+npm install
+npx expo install --check
+npx expo run:android
+```
+
+For a physical phone, configure the laptop's local IPv4 address (find it with
+`ipconfig`) in `mobile/.env.local`, using this format:
+
+```text
+EXPO_PUBLIC_API_URL=http://192.168.1.10:8000
+```
+
+Use the actual IPv4 address of the laptop and keep the phone and laptop on the same
+Wi-Fi. On Android Emulator, the default `http://10.0.2.2:8000` reaches the host laptop.
+Run FastAPI so the phone can reach it:
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 0.0.0.0 --reload
+```
+
+Allow Python/Uvicorn through Windows Firewall on a private network if prompted. Rebuild
+the Android development app after changing native dependencies or permissions. After
+the first install, `cd mobile; npm start` starts Metro for JS-only edits.
+
+The mobile app supports registration/sign-in, profile-independent User ID search,
+online status, incoming/outgoing voice and video calls, mute, camera toggle/switch,
+and call history. A physical phone can call a browser or another phone signed into a
+different account.
 
 ### Run backend tests
 

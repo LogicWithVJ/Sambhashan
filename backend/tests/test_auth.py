@@ -75,6 +75,37 @@ def test_protected_endpoint_requires_authentication(tmp_path):
         assert response.status_code == 401
 
 
+def test_mobile_login_returns_bearer_token_for_authenticated_api_requests(tmp_path):
+    with make_client(tmp_path) as client:
+        user_id = register(client)
+        response = client.post(
+            "/api/auth/mobile-login",
+            json={"identifier": user_id, "password": "a-strong-password"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["token_type"] == "bearer"
+        assert data["access_token"]
+        assert data["user_id"] == user_id
+
+        profile = client.get(
+            "/api/auth/me",
+            headers={"Authorization": f"Bearer {data['access_token']}"},
+        )
+        assert profile.status_code == 200
+        assert profile.json()["user_id"] == user_id
+
+
+def test_mobile_login_rejects_bad_credentials(tmp_path):
+    with make_client(tmp_path) as client:
+        register(client)
+        response = client.post(
+            "/api/auth/mobile-login",
+            json={"identifier": "+12025550198", "password": "wrong-password"},
+        )
+        assert response.status_code == 401
+
+
 def test_profile_can_be_viewed_and_edited_without_exposing_other_users(tmp_path):
     with make_client(tmp_path) as client:
         register(client)

@@ -183,8 +183,14 @@ def test_authenticated_socket_clients_can_signal_a_call(tmp_path):
             "/api/auth/login",
             json={"identifier": receiver_id, "password": "a-strong-password"},
         )
-        caller_cookie = caller_client.cookies.get("linguaconnect_session")
-        receiver_cookie = receiver_client.cookies.get("linguaconnect_session")
+        caller_token = caller_client.post(
+            "/api/auth/mobile-login",
+            json={"identifier": caller_id, "password": "a-strong-password"},
+        ).json()["access_token"]
+        receiver_token = receiver_client.post(
+            "/api/auth/mobile-login",
+            json={"identifier": receiver_id, "password": "a-strong-password"},
+        ).json()["access_token"]
 
     with socket.socket() as available_port:
         available_port.bind(("127.0.0.1", 0))
@@ -250,12 +256,12 @@ def test_authenticated_socket_clients_can_signal_a_call(tmp_path):
 
             await caller.connect(
                 f"http://127.0.0.1:{port}",
-                headers={"Cookie": f"linguaconnect_session={caller_cookie}"},
+                auth={"token": caller_token},
                 transports=["websocket"],
             )
             await receiver.connect(
                 f"http://127.0.0.1:{port}",
-                headers={"Cookie": f"linguaconnect_session={receiver_cookie}"},
+                auth={"token": receiver_token},
                 transports=["websocket"],
             )
             invite = await caller.call(
