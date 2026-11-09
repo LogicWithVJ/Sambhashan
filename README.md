@@ -84,7 +84,8 @@ browsers or devices.
 
 ### Run the Android mobile app
 
-See [mobile/README.md](./mobile/README.md) for phone/emulator connection instructions.
+See [mobile/README.md](./mobile/README.md) for phone/emulator instructions and steps
+to build an installable APK for two phones on the same Wi-Fi.
 
 Install Android Studio with the Android SDK and platform tools. In Android Studio,
 create/start an emulator, or connect an Android phone with USB debugging enabled.
