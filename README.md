@@ -1,6 +1,6 @@
 # Sambhashan (LinguaConnect)
 
-A multilingual voice and video communication platform. Work is currently limited to
+A multilingual voice communication platform. Work is currently limited to
 Stage 1; AI translation is intentionally out of scope.
 
 ## Architecture
@@ -39,7 +39,7 @@ SQLite as a convenient local development default.
 - Private profile viewing/editing and authenticated search by User ID; search results
   omit mobile numbers and email addresses.
 - Authenticated Socket.IO call invitations, accept/reject, presence, WebRTC signaling,
-  voice/video media, mute/camera controls, call duration, disconnect handling, and
+  voice media, mute controls, call duration, disconnect handling, and
   recent call history.
 - Calls are not recorded. Password recovery is not available until a verified
   recovery method is configured.
@@ -79,7 +79,7 @@ npm run dev
 
 Open the Vite URL (normally `http://localhost:5173`). Register with a mobile number
 and password, note the generated User ID, and try signing in with either identifier.
-Allow microphone/camera access to place a call. Test calling with two signed-in
+Allow microphone access to place a call. Test calling with two signed-in
 browsers or devices.
 
 ### Run the Android mobile app
@@ -118,7 +118,7 @@ the Android development app after changing native dependencies or permissions. A
 the first install, `cd mobile; npm start` starts Metro for JS-only edits.
 
 The mobile app supports registration/sign-in, profile-independent User ID search,
-online status, incoming/outgoing voice and video calls, mute, camera toggle/switch,
+online status, incoming/outgoing voice calls, mute,
 and call history. A physical phone can call a browser or another phone signed into a
 different account.
 
@@ -136,6 +136,6 @@ pytest
 
 There is no TURN server configuration, schema migration framework, password-change or
 recovery flow, notification preference management, or production deployment setup.
-Voice/video behavior still needs browser/device testing across real networks; the
+Voice-call behavior still needs browser/device testing across real networks; the
 automated tests cover API privacy and a two-client Socket.IO signaling exchange, not
-camera/microphone hardware or end-to-end media quality.
+microphone hardware or end-to-end media quality.

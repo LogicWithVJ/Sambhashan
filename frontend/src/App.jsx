@@ -58,7 +58,7 @@ function ProtectedDashboard() {
           {user.user_id}
         </p>
         <p className="mt-4 text-sm text-slate-400">
-          Share your User ID so people can find you and connect with a voice or video call.
+          Share your User ID so people can find you and connect with a voice call.
         </p>
       </section>
       {callNotice && <p className="mt-4 text-sm text-cyan-200" role="status">{callNotice}</p>}
@@ -78,7 +78,7 @@ function ProtectedDashboard() {
               {connected ? "Signaling online" : "Connecting…"}
             </span>
           </div>
-          <p className="mt-2 text-sm text-slate-400">Start voice or video calls from a person’s search result.</p>
+          <p className="mt-2 text-sm text-slate-400">Start voice calls from a person’s search result.</p>
           <Link className="mt-4 inline-block text-sm font-semibold text-cyan-300 hover:underline" to="/calls/history">
             View call history →
           </Link>

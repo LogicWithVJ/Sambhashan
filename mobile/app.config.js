@@ -14,10 +14,10 @@ module.exports = {
       permissions: [
         "android.permission.INTERNET",
         "android.permission.RECORD_AUDIO",
-        "android.permission.CAMERA",
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.BLUETOOTH",
       ],
+      blockedPermissions: ["android.permission.CAMERA"],
       adaptiveIcon: {
         backgroundColor: "#0f172a",
         foregroundImage: "./assets/android-icon-foreground.png",
@@ -32,7 +32,6 @@ module.exports = {
       [
         "@config-plugins/react-native-webrtc",
         {
-          cameraPermission: "Allow Sambhashan to use your camera during video calls.",
           microphonePermission: "Allow Sambhashan to use your microphone during calls.",
         },
       ],

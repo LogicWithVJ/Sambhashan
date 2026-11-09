@@ -32,8 +32,8 @@ history with the FastAPI backend. It uses an Expo development build because
    npx expo run:android
    ```
 
-   This creates and installs the native development app. Grant camera and microphone
-   permissions when Android asks.
+   This creates and installs the native development app. Grant microphone permission
+   when Android asks.
 6. For later JavaScript-only changes, run `npm start` in `mobile/`.
 
 The development build allows local plain HTTP so it can reach a laptop backend.
@@ -53,6 +53,6 @@ an actual Android build and hardware media test require Android SDK/device tools
 ## Calling
 
 Sign into two accounts on the Android app and another client (web or a second phone).
-Search the other user's ID and start a voice/video call. Answer the invitation, grant
-media permissions, and try mute/camera controls. Calls may fail on restrictive
+Search the other user's ID and start a voice call. Answer the invitation, grant
+microphone permission, and try the mute control. Calls may fail on restrictive
 networks until a TURN service is configured.

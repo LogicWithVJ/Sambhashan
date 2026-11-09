@@ -52,7 +52,7 @@ def test_call_signaling_persists_history_for_participants(tmp_path):
                 invite = asyncio.run(
                     realtime.invite_call(
                         "caller-sid",
-                        {"target_user_id": receiver_id, "call_type": "video"},
+                        {"target_user_id": receiver_id, "call_type": "voice"},
                     )
                 )
                 assert "call_id" in invite
@@ -83,7 +83,7 @@ def test_call_signaling_persists_history_for_participants(tmp_path):
                 assert len(history.json()) == 1
                 assert history.json()[0]["call_id"] == call_id
                 assert history.json()[0]["status"] == "accepted"
-                assert history.json()[0]["call_type"] == "video"
+                assert history.json()[0]["call_type"] == "voice"
 
                 with client.app.state.session_factory() as db:
                     record = db.scalar(
@@ -166,6 +166,27 @@ def test_rejected_call_is_saved_in_history(tmp_path):
                 realtime.sid_users.pop("receiver-sid", None)
                 realtime.user_sids.pop(caller_id, None)
                 realtime.user_sids.pop(receiver_id, None)
+
+
+def test_video_call_invites_are_rejected(tmp_path):
+    with make_client(tmp_path) as client:
+        caller_id = register(client, "Caller Example", "+12025550198")
+        receiver_id = register(client, "Receiver Example", "+14155550132")
+        realtime.db_session_factory = client.app.state.session_factory
+        realtime.sid_users["caller-sid"] = caller_id
+        realtime.user_sids[receiver_id] = {"receiver-sid"}
+        try:
+            response = asyncio.run(
+                realtime.invite_call(
+                    "caller-sid",
+                    {"target_user_id": receiver_id, "call_type": "video"},
+                )
+            )
+            assert response == {"error": "Only voice calls are currently supported."}
+            assert realtime.active_calls == {}
+        finally:
+            realtime.sid_users.pop("caller-sid", None)
+            realtime.user_sids.pop(receiver_id, None)
 
 
 def test_authenticated_socket_clients_can_signal_a_call(tmp_path):

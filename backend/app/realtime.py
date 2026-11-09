@@ -176,8 +176,8 @@ async def invite_call(sid: str, data: dict[str, Any]):
         return {"error": "Invalid call request."}
     receiver_user_id = str(data.get("target_user_id", "")).strip().upper()
     call_type = data.get("call_type")
-    if call_type not in ("voice", "video"):
-        return {"error": "Choose voice or video calling."}
+    if call_type != "voice":
+        return {"error": "Only voice calls are currently supported."}
     if receiver_user_id == caller_user_id:
         return {"error": "You cannot call your own account."}
     if receiver_user_id not in user_sids:

@@ -27,10 +27,10 @@ export function UserSearchPage() {
     }
   }
 
-  async function beginCall(callType) {
+  async function beginCall() {
     setCallError("");
     try {
-      await startCall(result.user_id, callType);
+      await startCall(result.user_id);
     } catch (requestError) {
       setCallError(requestError.message);
     }
@@ -103,15 +103,12 @@ export function UserSearchPage() {
             )}
           </dl>
           <p className="mt-6 text-sm text-slate-400">
-            Calls are peer-to-peer. Your microphone or camera is requested only after you start or accept a call.
+            Calls are peer-to-peer. Your microphone is requested only after you start or accept a call.
           </p>
           {result.user_id !== user?.user_id && (
             <div className="mt-5 flex flex-wrap gap-3">
-              <button className="button-primary" disabled={!connected || !presence[result.user_id]} onClick={() => beginCall("voice")} type="button">
+              <button className="button-primary" disabled={!connected || !presence[result.user_id]} onClick={beginCall} type="button">
                 Start voice call
-              </button>
-              <button className="button-secondary" disabled={!connected || !presence[result.user_id]} onClick={() => beginCall("video")} type="button">
-                Start video call
               </button>
             </div>
           )}

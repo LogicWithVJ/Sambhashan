@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { useAuth } from "../auth/AuthContext";
+import { useNavigate, useParams } from "react-router-dom";
 import { useCalls } from "./CallContext";
 
 const iceServers = [
@@ -10,20 +9,13 @@ const iceServers = [
 
 export function CallPage() {
   const { callId } = useParams();
-  const [searchParams] = useSearchParams();
-  const callType = searchParams.get("type") === "video" ? "video" : "voice";
-  const { user } = useAuth();
-  const { socket, connected, currentCall, endCall, setCallNotice } = useCalls();
+  const { socket, connected, currentCall, endCall } = useCalls();
   const navigate = useNavigate();
-  const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
-  const [status, setStatus] = useState("Requesting media permissions…");
+  const [status, setStatus] = useState("Requesting microphone permission…");
   const [error, setError] = useState("");
   const [muted, setMuted] = useState(false);
-  const [cameraOn, setCameraOn] = useState(true);
   const [elapsed, setElapsed] = useState(0);
-  const localVideoRef = useRef(null);
-  const remoteVideoRef = useRef(null);
   const remoteAudioRef = useRef(null);
   const peerRef = useRef(null);
   const streamRef = useRef(null);
@@ -131,19 +123,15 @@ export function CallPage() {
 
     async function prepareMedia() {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: callType === "video",
-        });
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
         if (disposed) {
           stream.getTracks().forEach((track) => track.stop());
           return;
         }
         streamRef.current = stream;
-        setLocalStream(stream);
         const peer = new RTCPeerConnection({ iceServers });
         peerRef.current = peer;
-        stream.getTracks().forEach((track) => peer.addTrack(track, stream));
+        stream.getAudioTracks().forEach((track) => peer.addTrack(track, stream));
         peer.ontrack = (event) => {
           const [incomingStream] = event.streams;
           if (incomingStream) setRemoteStream(incomingStream);
@@ -171,11 +159,11 @@ export function CallPage() {
         });
       } catch (mediaError) {
         if (disposed) return;
-        setStatus("Media unavailable");
+        setStatus("Microphone unavailable");
         setError(
           mediaError.name === "NotAllowedError"
-            ? "Allow microphone and camera access to join this call."
-            : `Could not access your microphone or camera: ${mediaError.message}`,
+            ? "Allow microphone access to join this call."
+            : `Could not access your microphone: ${mediaError.message}`,
         );
       }
     }
@@ -193,7 +181,7 @@ export function CallPage() {
       streamRef.current = null;
       if (!endedRef.current) socket.emit("call:end", { call_id: callId });
     };
-  }, [callId, callType, createOffer, navigate, processSignal, role, sendSignal, socket]);
+  }, [callId, createOffer, navigate, processSignal, role, sendSignal, socket]);
 
   useEffect(() => {
     if (currentCall?.callId === callId && currentCall.accepted) {
@@ -202,15 +190,16 @@ export function CallPage() {
   }, [callId, currentCall]);
 
   useEffect(() => {
-    if (localVideoRef.current && localStream) localVideoRef.current.srcObject = localStream;
-  }, [localStream]);
-  useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) remoteVideoRef.current.srcObject = remoteStream;
-    if (remoteAudioRef.current && remoteStream) remoteAudioRef.current.srcObject = remoteStream;
+    if (remoteAudioRef.current && remoteStream) {
+      remoteAudioRef.current.srcObject = remoteStream;
+    }
   }, [remoteStream]);
+
   useEffect(() => {
     if (!startedAt) return undefined;
-    const updateDuration = () => setElapsed(Math.max(0, Math.floor((Date.now() - Date.parse(startedAt)) / 1000)));
+    const updateDuration = () => {
+      setElapsed(Math.max(0, Math.floor((Date.now() - Date.parse(startedAt)) / 1000)));
+    };
     updateDuration();
     const timer = window.setInterval(updateDuration, 1000);
     return () => window.clearInterval(timer);
@@ -222,44 +211,6 @@ export function CallPage() {
     setMuted(nextMuted);
   }
 
-  function toggleCamera() {
-    const nextCameraOn = !cameraOn;
-    streamRef.current?.getVideoTracks().forEach((track) => { track.enabled = nextCameraOn; });
-    setCameraOn(nextCameraOn);
-  }
-
-  async function switchCamera() {
-    try {
-      const currentTrack = streamRef.current?.getVideoTracks()[0];
-      if (!currentTrack) return;
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const cameras = devices.filter((device) => device.kind === "videoinput");
-      if (cameras.length < 2) {
-        setError("A second camera is not available on this device.");
-        return;
-      }
-      const currentIndex = cameras.findIndex((device) => device.deviceId === currentTrack.getSettings().deviceId);
-      const nextDevice = cameras[(currentIndex + 1) % cameras.length];
-      const nextStream = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: { deviceId: { exact: nextDevice.deviceId } },
-      });
-      const nextTrack = nextStream.getVideoTracks()[0];
-      nextTrack.enabled = cameraOn;
-      const sender = peerRef.current?.getSenders().find((item) => item.track?.kind === "video");
-      await sender?.replaceTrack(nextTrack);
-      currentTrack.stop();
-      const combinedStream = new MediaStream([
-        ...streamRef.current.getAudioTracks(),
-        nextTrack,
-      ]);
-      streamRef.current = combinedStream;
-      setLocalStream(combinedStream);
-    } catch (switchError) {
-      setError(`Could not switch camera: ${switchError.message}`);
-    }
-  }
-
   function formatDuration(seconds) {
     const minutes = Math.floor(seconds / 60).toString().padStart(2, "0");
     const remaining = (seconds % 60).toString().padStart(2, "0");
@@ -268,73 +219,35 @@ export function CallPage() {
 
   function leaveCall() {
     endedRef.current = true;
-    setCallNotice("");
     endCall(callId);
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-8 sm:px-6">
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">{callType === "video" ? "Video call" : "Voice call"}</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            {status}{startedAt ? ` · ${formatDuration(elapsed)}` : ""}
-            {!connected ? " · Signaling disconnected" : ""}
-          </p>
+    <main className="mx-auto flex min-h-screen max-w-3xl flex-col px-6 py-12">
+      <header className="text-center">
+        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300">
+          Sambhashan voice call
+        </p>
+        <h1 className="mt-4 text-3xl font-bold">{currentCall?.peerName || "One-to-one call"}</h1>
+        <p className="mt-2 text-sm text-slate-400">
+          {status}{startedAt ? ` · ${formatDuration(elapsed)}` : ""}
+          {!connected ? " · Signaling disconnected" : ""}
+        </p>
+      </header>
+      {error && <p className="mt-6 rounded-lg bg-rose-950/60 p-3 text-sm text-rose-200" role="alert">{error}</p>}
+      <section className="my-auto py-16 text-center">
+        <div aria-hidden="true" className="mx-auto grid h-36 w-36 place-items-center rounded-full bg-cyan-950 text-5xl font-bold text-cyan-200">
+          {currentCall?.peerName?.slice(0, 1).toUpperCase() || "•"}
         </div>
-        <p className="text-sm text-slate-400">{user?.full_name}</p>
-      </div>
-
-      {error && <p className="mb-4 rounded-lg bg-rose-950/60 p-3 text-sm text-rose-200" role="alert">{error}</p>}
-
-      <section className="relative grid min-h-[55vh] flex-1 place-items-center overflow-hidden rounded-2xl border border-slate-700 bg-slate-900">
-        {remoteStream ? (
-          callType === "video" ? (
-            <video autoPlay className="h-full max-h-[70vh] w-full object-contain" playsInline ref={remoteVideoRef} />
-          ) : (
-            <div className="text-center">
-              <div aria-hidden="true" className="mx-auto grid h-28 w-28 place-items-center rounded-full bg-cyan-950 text-4xl font-bold text-cyan-200">
-                {currentCall?.peerName?.slice(0, 1).toUpperCase() || "•"}
-              </div>
-              <p className="mt-4 text-slate-300">Voice connected</p>
-            </div>
-          )
-        ) : (
-          <p className="px-6 text-center text-slate-400">{status}</p>
-        )}
-        {callType === "voice" && <audio autoPlay ref={remoteAudioRef} />}
-        {callType === "video" && (
-          <video
-            autoPlay
-            className="absolute bottom-4 right-4 aspect-video w-1/3 max-w-56 rounded-xl border border-slate-600 bg-slate-800 object-cover"
-            muted
-            playsInline
-            ref={localVideoRef}
-          />
-        )}
+        <p className="mt-6 text-slate-300">
+          {remoteStream ? "Voice connected" : status}
+        </p>
+        <audio autoPlay ref={remoteAudioRef} />
       </section>
-
-      <div className="mt-6 flex flex-wrap justify-center gap-3">
+      <div className="flex justify-center gap-3">
         <button className="button-secondary" onClick={toggleMute} type="button">
           {muted ? "Unmute microphone" : "Mute microphone"}
         </button>
-        {callType === "video" && (
-          <>
-            <button className="button-secondary" onClick={toggleCamera} type="button">
-              {cameraOn ? "Turn camera off" : "Turn camera on"}
-            </button>
-            <button className="button-secondary" onClick={switchCamera} type="button">
-              Switch camera
-            </button>
-            <button
-              className="button-secondary"
-              onClick={() => remoteVideoRef.current?.requestFullscreen?.()}
-              type="button"
-            >
-              Full screen
-            </button>
-          </>
-        )}
         <button className="rounded-lg bg-rose-600 px-5 py-3 font-semibold text-white hover:bg-rose-500" onClick={leaveCall} type="button">
           End call
         </button>

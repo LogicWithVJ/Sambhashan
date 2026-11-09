@@ -2,7 +2,7 @@
 
 ## Stage boundaries
 
-- **Stage 1:** accounts, profiles, user discovery, presence, one-to-one voice/video,
+- **Stage 1:** accounts, profiles, user discovery, presence, one-to-one voice,
   signaling, and call history.
 - **Stage 2:** speech recognition, translation, subtitles, and translated audio.
 - **Stage 3:** performance, broader testing, optimization, and deployment.
@@ -93,8 +93,9 @@ discovery uses a separate response that omits private contact information.
 Socket.IO authenticates the same signed session cookie as the HTTP API. Call
 invitations, participant membership, and all signaling relays are validated server-side.
 Offer/answer descriptions and ICE candidates are relayed only between the two call
-participants. WebRTC media uses DTLS-SRTP peer connections and is not sent through or
-recorded by the API server. Google STUN servers are configured for initial connectivity;
+participants. New call invitations support voice only. WebRTC media uses DTLS-SRTP
+peer connections and is not sent through or recorded by the API server. Google STUN
+servers are configured for initial connectivity;
 TURN is not configured.
 
 The mobile app signs in through `POST /api/auth/mobile-login`, which returns a signed

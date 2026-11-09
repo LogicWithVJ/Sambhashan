@@ -18,17 +18,14 @@ import {
   mediaDevices,
   MediaStream,
   RTCIceCandidate,
-  MediaStreamTrack,
   RTCPeerConnection,
   RTCSessionDescription,
-  RTCView,
 } from "react-native-webrtc";
 import { apiRequest, CallHistory, getSocketUrl, PublicUser, User } from "./src/api";
 
 type Session = { user: User; token: string };
 type Call = {
   callId: string;
-  callType: "voice" | "video";
   role: "caller" | "callee";
   accepted: boolean;
   startedAt: string | null;
@@ -125,12 +122,10 @@ function CallView({
   socket: Socket;
   onEnd: () => void;
 }) {
-  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [status, setStatus] = useState("Requesting media permission…");
   const [error, setError] = useState("");
   const [muted, setMuted] = useState(false);
-  const [cameraOn, setCameraOn] = useState(true);
   const [elapsed, setElapsed] = useState(0);
   const peerRef = useRef<RTCPeerConnection | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -255,17 +250,13 @@ function CallView({
 
     async function prepareMedia() {
       try {
-        const stream = (await mediaDevices.getUserMedia({
-          audio: true,
-          video: call.callType === "video" ? { facingMode: "user" } : false,
-        })) as MediaStream;
+        const stream = (await mediaDevices.getUserMedia({ audio: true, video: false })) as MediaStream;
         if (disposed) {
           stream.getTracks().forEach((track) => track.stop());
           return;
         }
         streamRef.current = stream;
-        setLocalStream(stream);
-        stream.getTracks().forEach((track) => peer.addTrack(track, stream));
+        stream.getAudioTracks().forEach((track) => peer.addTrack(track, stream));
         setStatus(call.role === "caller" ? "Waiting for answer…" : "Connecting…");
         socket.emit("call:ready", { call_id: call.callId }, (response: { error?: string }) => {
           if (response?.error) setError(response.error);
@@ -275,8 +266,8 @@ function CallView({
         setStatus("Media unavailable");
         setError(
           nativeError.name === "NotAllowedError"
-            ? "Allow microphone and camera access in Android settings to call."
-            : `Could not access microphone/camera: ${nativeError.message}`,
+            ? "Allow microphone access in Android settings to call."
+            : `Could not access your microphone: ${nativeError.message}`,
         );
       }
     }
@@ -294,7 +285,7 @@ function CallView({
       streamRef.current = null;
       if (!endedRef.current) socket.emit("call:end", { call_id: call.callId });
     };
-  }, [call.callId, call.callType, call.role, onEnd, socket]);
+  }, [call.callId, call.role, onEnd, socket]);
 
   useEffect(() => {
     if (!call.startedAt) return undefined;
@@ -316,66 +307,22 @@ function CallView({
     setMuted(next);
   }
 
-  function toggleCamera() {
-    const next = !cameraOn;
-    streamRef.current?.getVideoTracks().forEach((track) => { track.enabled = next; });
-    setCameraOn(next);
-  }
-
-  function switchCamera() {
-    const track = streamRef.current?.getVideoTracks()[0] as
-      | (MediaStreamTrack & { _switchCamera?: () => void })
-      | undefined;
-    if (!track?._switchCamera) {
-      setError("Camera switching is not supported on this device.");
-      return;
-    }
-    track._switchCamera();
-  }
-
   return (
     <ScrollView contentContainerStyle={styles.page}>
-      <Text style={styles.title}>{call.callType === "video" ? "Video call" : "Voice call"}</Text>
+      <Text style={styles.title}>Voice call</Text>
       <Text style={styles.mutedText}>
         {call.peerName} · {status} {call.startedAt ? `· ${Math.floor(elapsed / 60).toString().padStart(2, "0")}:${(elapsed % 60).toString().padStart(2, "0")}` : ""}
       </Text>
       <ErrorMessage>{error}</ErrorMessage>
-      {call.callType === "video" ? (
-        <View style={styles.videoStage}>
-          {remoteStream ? (
-            <RTCView objectFit="cover" streamURL={remoteStream.toURL()} style={styles.remoteVideo} />
-          ) : (
-            <View style={styles.videoPlaceholder}>
-              <Text style={styles.mutedText}>{status}</Text>
-            </View>
-          )}
-          {localStream?.getVideoTracks().length ? (
-            <RTCView
-              mirror
-              objectFit="cover"
-              streamURL={localStream.toURL()}
-              style={styles.localVideo}
-              zOrder={1}
-            />
-          ) : null}
+      <View style={styles.voiceStage}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{call.peerName.slice(0, 1).toUpperCase()}</Text>
         </View>
-      ) : (
-        <View style={styles.voiceStage}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{call.peerName.slice(0, 1).toUpperCase()}</Text>
-          </View>
-          <Text style={styles.title}>{call.peerName}</Text>
-          <Text style={styles.mutedText}>{remoteStream ? "Audio connected" : status}</Text>
-        </View>
-      )}
+        <Text style={styles.title}>{call.peerName}</Text>
+        <Text style={styles.mutedText}>{remoteStream ? "Audio connected" : status}</Text>
+      </View>
       <View style={styles.buttonRow}>
         <ActionButton title={muted ? "Unmute" : "Mute"} onPress={toggleMute} secondary />
-        {call.callType === "video" && (
-          <>
-            <ActionButton title={cameraOn ? "Camera off" : "Camera on"} onPress={toggleCamera} secondary />
-            <ActionButton title="Switch camera" onPress={switchCamera} secondary />
-          </>
-        )}
       </View>
       <ActionButton title="End call" onPress={finishCall} />
     </ScrollView>
@@ -448,11 +395,10 @@ export default function App() {
     });
     connection.on("call:incoming", (event: {
       call_id: string;
-      call_type: "voice" | "video";
       caller: { user_id: string; full_name: string };
     }) => {
       Alert.alert(
-        `Incoming ${event.call_type} call`,
+        "Incoming voice call",
         `${event.caller.full_name} (${event.caller.user_id}) is calling.`,
         [
           {
@@ -475,7 +421,6 @@ export default function App() {
                 );
                 setActiveCall({
                   callId: event.call_id,
-                  callType: event.call_type,
                   role: "callee",
                   accepted: true,
                   startedAt: response.started_at,
@@ -574,7 +519,7 @@ export default function App() {
     }
   }
 
-  async function startCall(callType: "voice" | "video") {
+  async function startCall() {
     if (!socket?.connected || !foundUser) {
       setError("Connect to the calling service and search for an online user first.");
       return;
@@ -584,11 +529,10 @@ export default function App() {
     try {
       const response = await emitWithAck<{ call_id: string }>(socket, "call:invite", {
         target_user_id: foundUser.user_id,
-        call_type: callType,
+        call_type: "voice",
       });
       setActiveCall({
         callId: response.call_id,
-        callType,
         role: "caller",
         accepted: false,
         startedAt: null,
@@ -714,8 +658,7 @@ export default function App() {
                 )}
                 {foundUser.user_id !== session?.user.user_id && (
                   <View style={styles.buttonRow}>
-                    <ActionButton title="Voice call" onPress={() => void startCall("voice")} disabled={busy || !online || !socket?.connected} />
-                    <ActionButton title="Video call" onPress={() => void startCall("video")} secondary disabled={busy || !online || !socket?.connected} />
+                    <ActionButton title="Voice call" onPress={() => void startCall()} disabled={busy || !online || !socket?.connected} />
                   </View>
                 )}
               </View>
@@ -771,10 +714,6 @@ const styles = StyleSheet.create({
   resultName: { color: "#f8fafc", fontSize: 18, fontWeight: "700" },
   buttonRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 10 },
   divider: { height: 1, backgroundColor: "#334155", marginVertical: 8 },
-  videoStage: { height: 480, overflow: "hidden", borderRadius: 18, backgroundColor: "#020617", position: "relative", marginTop: 20 },
-  remoteVideo: { width: "100%", height: "100%" },
-  localVideo: { position: "absolute", right: 12, top: 12, width: 120, height: 170, borderRadius: 12, overflow: "hidden" },
-  videoPlaceholder: { flex: 1, alignItems: "center", justifyContent: "center" },
   voiceStage: { flex: 1, minHeight: 380, alignItems: "center", justifyContent: "center", gap: 12 },
   avatar: { width: 120, height: 120, borderRadius: 60, backgroundColor: "#164e63", alignItems: "center", justifyContent: "center" },
   avatarText: { color: "#cffafe", fontSize: 48, fontWeight: "800" },

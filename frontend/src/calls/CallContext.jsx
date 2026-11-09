@@ -98,28 +98,27 @@ export function CallProvider({ children }) {
     };
   }, [user?.user_id]);
 
-  async function startCall(targetUserId, callType) {
+  async function startCall(targetUserId) {
     const socket = socketRef.current;
     if (!socket?.connected) throw new Error("Connecting to the calling service. Try again shortly.");
     setCallNotice("");
     const response = await emitWithAck(
       socket,
       "call:invite",
-      { target_user_id: targetUserId, call_type: callType },
+      { target_user_id: targetUserId, call_type: "voice" },
     );
     if (!response || response.error) {
       throw new Error(response?.error || "Could not start the call.");
     }
     const nextCall = {
       callId: response.call_id,
-      callType,
       role: "caller",
       accepted: false,
       startedAt: null,
     };
     activeCallRef.current = nextCall;
     setCurrentCall(nextCall);
-    navigate(`/calls/${response.call_id}?type=${callType}`);
+    navigate(`/calls/${response.call_id}`);
   }
 
   async function acceptCall() {
@@ -137,7 +136,6 @@ export function CallProvider({ children }) {
     }
     const activeCall = {
       callId: incomingCall.call_id,
-      callType: incomingCall.call_type,
       role: "callee",
       accepted: true,
       startedAt: response.started_at,
@@ -145,7 +143,7 @@ export function CallProvider({ children }) {
     activeCallRef.current = activeCall;
     setCurrentCall(activeCall);
     setIncomingCall(null);
-    navigate(`/calls/${incomingCall.call_id}?type=${incomingCall.call_type}`);
+    navigate(`/calls/${incomingCall.call_id}`);
   }
 
   async function rejectCall() {
@@ -227,7 +225,7 @@ export function IncomingCallDialog() {
     <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/80 p-4" role="dialog" aria-modal="true" aria-labelledby="incoming-call-title">
       <section className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-800 p-6 text-center shadow-2xl">
         <p className="text-sm font-semibold uppercase tracking-widest text-cyan-300">
-          Incoming {incomingCall.call_type} call
+          Incoming voice call
         </p>
         <h2 className="mt-4 text-2xl font-bold" id="incoming-call-title">
           {incomingCall.caller.full_name}

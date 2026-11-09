@@ -20,7 +20,7 @@ export type CallHistory = {
   call_id: string;
   caller_user_id: string;
   receiver_user_id: string;
-  call_type: "voice" | "video";
+  call_type: string;
   status: string;
   created_at: string;
   duration_seconds: number;
